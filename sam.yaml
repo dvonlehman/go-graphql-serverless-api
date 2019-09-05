@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Go GraphQL Serverless
+Resources:
+  GoGraphQLApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: go-graphql-api
+      CodeUri: dist.zip
+      Description: Go Serverless GraphQL API
+      FunctionName: go-graphql-api
+      Runtime: go1.x
+      MemorySize: 128
+      Policies: AWSLambdaBasicExecutionRole
+      Timeout: 3
+      Events:
+        GetResource:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: any
+
+Outputs:
+  GoGraphQLApi:
+    Description: URL for application
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/pets"
+    Export:
+      Name: GoGraphQLApiUrl
