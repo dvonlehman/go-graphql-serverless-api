@@ -2,6 +2,8 @@
 
 Template for a golang GraphQL API deployed using [AWS SAM](https://docs.aws.amazon.com/serverless-application-model/index.html) to API Gateway and Lambda.
 
+Live site: https://ikjomccz1e.execute-api.us-west-2.amazonaws.com/Prod/pets
+
 ## Resources
 
 - https://github.com/awslabs/aws-lambda-go-api-proxy

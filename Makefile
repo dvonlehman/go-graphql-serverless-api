@@ -1,3 +1,5 @@
+.PHONY: build run dev test lint clean deps
+
 SAM_TEMPLATE=sam.yaml
 SAM_PACKAGED=sam-packaged.yaml
 LAMBDA_NAME=go-graphql-api
