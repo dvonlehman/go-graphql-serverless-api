@@ -1,6 +1,8 @@
 package musicutil
 
 import (
+	"fmt"
+
 	"github.com/graphql-go/graphql"
 )
 
@@ -263,6 +265,9 @@ func init() {
 			"discs": &graphql.Field{
 				Type: graphql.NewList(discType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					// p.Args
+					fmt.Printf("%+v\n", p)
+
 					return GetAllDiscs(), nil
 				},
 			},

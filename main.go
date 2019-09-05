@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"example.com/go-graphql-api/musicutil"
@@ -11,10 +12,20 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 	"github.com/gin-gonic/gin"
-	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/handler"
 )
 
 var ginLambda *ginadapter.GinLambda
+
+func createGinRouter() *gin.Engine {
+	r := gin.Default()
+	r.GET("/pets", getPets)
+	r.GET("/pets/:id", getPet)
+	r.POST("/pets", createPet)
+	r.Any("/discs", graphQlHandler())
+
+	return r
+}
 
 // Handler is the main entry point for Lambda. Receives a proxy request and
 // returns a proxy response
@@ -22,12 +33,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	if ginLambda == nil {
 		// stdout and stderr are sent to AWS CloudWatch Logs
 		log.Printf("Gin cold start")
-		r := gin.Default()
-		r.GET("/pets", getPets)
-		r.GET("/pets/:id", getPet)
-		r.POST("/pets", createPet)
-		r.POST("/discs", getDiscs)
-
+		r := createGinRouter()
 		ginLambda = ginadapter.New(r)
 	}
 
@@ -35,7 +41,14 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func main() {
-	lambda.Start(Handler)
+	// If the "local" arg is provided, then run gin directly
+	if len(os.Args) > 1 && os.Args[1] == "local" {
+		r := createGinRouter()
+		r.Run(":4000")
+		return
+	} else {
+		lambda.Start(Handler)
+	}
 }
 
 func getPets(c *gin.Context) {
@@ -79,20 +92,15 @@ func createPet(c *gin.Context) {
 	c.JSON(http.StatusAccepted, newPet)
 }
 
-func getDiscs(c *gin.Context) {
-	var apolloQuery map[string]interface{}
-	if err := c.ShouldBind(&apolloQuery); err != nil {
-		log.Fatal("Could not marshal body to an apolloQuery")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	query := apolloQuery["query"]
-	variables := apolloQuery["variables"]
-	result := graphql.Do(graphql.Params{
-		Schema:         musicutil.MusicSchema,
-		RequestString:  query.(string),
-		VariableValues: variables.(map[string]interface{}),
+func graphQlHandler() gin.HandlerFunc {
+	// Creates a GraphQL-go HTTP handler with the defined schema
+	h := handler.New(&handler.Config{
+		Schema:   &musicutil.MusicSchema, // &schema.Schema,
+		Pretty:   true,
+		GraphiQL: true,
 	})
-	c.JSON(200, result)
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
 }
